@@ -1,0 +1,36 @@
+# Athena - AI Research Assistant Requirements
+
+# Core Framework
+streamlit>=1.28.0
+
+# PDF Processing
+PyPDF2>=3.0.0
+
+# LangChain Core
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.10
+
+# Vector Store & Embeddings
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.0
+
+# LLM Integration
+ollama>=0.1.0  # Optional: for Python Ollama client
+
+# Text Processing
+tiktoken>=0.5.0
+
+# Web Search Tools
+ddgs>=6.0.0  # formerly duckduckgo-search
+arxiv>=2.0.0
+
+# API Requests
+requests>=2.31.0
+
+# Additional Utilities
+python-dotenv>=1.0.0  # For environment variables
+
+# Optional: For better PDF extraction
+# pdfplumber>=0.10.0
+# PyMuPDF>=1.23.0  # fitz
