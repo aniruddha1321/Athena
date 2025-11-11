@@ -6,7 +6,21 @@ from qa_engine import make_qa_chain
 from semantic_search import build_semantic_index, search_semantic
 from pdf_utils import extract_text_from_pdf
 from chat_engine import AthenaChat
-from document_comparison import DocumentComparison
+
+# Try to import optional features
+try:
+    from document_comparison import DocumentComparison
+    COMPARISON_AVAILABLE = True
+except ImportError:
+    COMPARISON_AVAILABLE = False
+    print("⚠️ Document comparison not available - document_comparison.py missing")
+
+try:
+    from voice_interface import render_voice_tab
+    VOICE_AVAILABLE = True
+except ImportError:
+    VOICE_AVAILABLE = False
+    print("⚠️ Voice interface not available - voice_interface.py missing")
 
 # ---------- Page setup ----------
 st.set_page_config(
@@ -15,7 +29,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------- Custom CSS with Enhanced Text Visibility ----------
+# ---------- Custom CSS ----------
 st.markdown("""
 <style>
 body {
@@ -71,45 +85,7 @@ h1, h2, h3 {
     line-height: 1.8;
     color: #065f46;
     font-size: 1.05rem;
-    font-weight: 500;
     border: 1px solid #bbf7d0;
-}
-.section-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.comparison-section {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    border: 2px solid #e5e7eb;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.comparison-section h4 {
-    color: #1e3a8a;
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    font-size: 1.2rem;
-}
-.comparison-content {
-    color: #374151;
-    line-height: 1.8;
-    font-size: 1.05rem;
-}
-.info-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    font-weight: 500;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -117,6 +93,17 @@ h1, h2, h3 {
 # ---------- Header ----------
 st.title("🧠 Athena")
 st.markdown("### _Local AI Research Assistant powered by Ollama_")
+
+# Show available features
+features = []
+if COMPARISON_AVAILABLE:
+    features.append("📊 Document Comparison")
+if VOICE_AVAILABLE:
+    features.append("🎤 Voice Assistant")
+
+if features:
+    st.caption(f"✨ Available features: {', '.join(features)}")
+
 st.markdown("---")
 
 # ---------- Initialize Session State ----------
@@ -132,11 +119,8 @@ if "pdf_uploaded" not in st.session_state:
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
 
-if "doc_comparison" not in st.session_state:
+if COMPARISON_AVAILABLE and "doc_comparison" not in st.session_state:
     st.session_state.doc_comparison = DocumentComparison(model="llama3")
-
-if "comparison_docs" not in st.session_state:
-    st.session_state.comparison_docs = []
 
 # ---------- Input section ----------
 st.markdown("### 📄 Upload a research paper (PDF) or enter a topic")
@@ -207,25 +191,30 @@ if st.button("✨ Research", key="research_button"):
 # ---------- Show Tabs OUTSIDE the button (persistent) ----------
 if st.session_state.pdf_uploaded and st.session_state.last_result:
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    # Build tab list dynamically
+    tab_names = [
         "📄 Summary", 
         "💬 Q&A", 
         "🔍 Semantic Search",
-        "🤖 Chat with Athena",
-        "📊 Document Comparison"
-    ])
+        "🤖 Chat with Athena"
+    ]
+    
+    if COMPARISON_AVAILABLE:
+        tab_names.append("📊 Document Comparison")
+    
+    if VOICE_AVAILABLE:
+        tab_names.append("🎤 Voice Assistant")
+    
+    tabs = st.tabs(tab_names)
+    
+    # Tab index counter
+    tab_idx = 0
 
-    # ---------- Summary TAB (Enhanced) ----------
-    with tab1:
-        st.markdown("<div class='section-header'>📋 Research Summary</div>", unsafe_allow_html=True)
-        
-        # Display summary with better formatting
-        summary_html = f"""
-        <div class='result-box'>
-            {st.session_state.last_result.replace(chr(10), '<br>')}
-        </div>
-        """
-        st.markdown(summary_html, unsafe_allow_html=True)
+    # ---------- Summary TAB ----------
+    with tabs[tab_idx]:
+        tab_idx += 1
+        st.markdown("### 📋 Research Summary")
+        st.markdown(f"<div class='result-box'>{st.session_state.last_result}</div>", unsafe_allow_html=True)
 
         st.download_button(
             label="💾 Download Summary",
@@ -236,7 +225,8 @@ if st.session_state.pdf_uploaded and st.session_state.last_result:
         )
 
     # ---------- Q&A TAB ----------
-    with tab2:
+    with tabs[tab_idx]:
+        tab_idx += 1
         st.markdown("### 💬 Ask Questions about this Paper")
 
         if "qa_chain" not in st.session_state:
@@ -270,7 +260,8 @@ if st.session_state.pdf_uploaded and st.session_state.last_result:
                         st.error(f"❌ Error getting answer: {e}")
 
     # ---------- SEMANTIC SEARCH TAB ----------
-    with tab3:
+    with tabs[tab_idx]:
+        tab_idx += 1
         st.markdown("### 🔍 Semantic Search in Paper")
 
         if "semantic_index" not in st.session_state:
@@ -301,7 +292,7 @@ if st.session_state.pdf_uploaded and st.session_state.last_result:
             if not query.strip():
                 st.warning("Please enter a search query.")
             else:
-                with st.spinner("🔎 Performing semantic search..."):
+                with st.spinner("🔍 Performing semantic search..."):
                     try:
                         results = search_semantic(
                             st.session_state.semantic_index, 
@@ -351,7 +342,8 @@ if st.session_state.pdf_uploaded and st.session_state.last_result:
                         st.markdown(f"```\n{text}\n```")
 
     # ---------- CHAT TAB ----------
-    with tab4:
+    with tabs[tab_idx]:
+        tab_idx += 1
         st.markdown("### 🤖 Chat with Athena")
         st.info("💡 Athena has access to your uploaded document and will answer based on its content!")
         
@@ -421,106 +413,75 @@ if st.session_state.pdf_uploaded and st.session_state.last_result:
             st.markdown("---")
             st.caption(f"💬 {len(st.session_state.chat_messages)} exchanges in this conversation")
 
-    # ---------- DOCUMENT COMPARISON TAB (Enhanced) ----------
-    with tab5:
-        st.markdown("<div class='section-header'>📊 Document Comparison</div>", unsafe_allow_html=True)
-        st.markdown("<div class='info-card'>💡 Upload multiple PDFs to compare them side-by-side and find similarities/differences!</div>", unsafe_allow_html=True)
-        
-        st.markdown("#### 🔎 Upload Documents to Compare")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            doc1_file = st.file_uploader("Document 1", type="pdf", key="doc1_upload")
-        
-        with col2:
-            doc2_file = st.file_uploader("Document 2", type="pdf", key="doc2_upload")
-        
-        if st.button("🔍 Compare Documents", key="compare_button"):
-            if not doc1_file or not doc2_file:
-                st.warning("⚠️ Please upload both documents to compare.")
-            else:
-                with st.spinner("📖 Extracting and analyzing documents..."):
-                    try:
-                        # Extract text from both PDFs
-                        text1 = extract_text_from_pdf(doc1_file)
-                        text2 = extract_text_from_pdf(doc2_file)
-                        
-                        if not text1.strip() or not text2.strip():
-                            st.error("❌ Could not extract text from one or both PDFs.")
-                            st.stop()
-                        
-                        # Add documents to comparison engine
-                        st.session_state.doc_comparison.add_document(doc1_file.name, text1)
-                        st.session_state.doc_comparison.add_document(doc2_file.name, text2)
-                        
-                        st.success("✅ Documents loaded successfully!")
-                        
-                        # Perform comparison with progress message
-                        with st.spinner("🔬 Comparing documents... This may take 30-60 seconds if using AI analysis"):
-                            comparison_result = st.session_state.doc_comparison.compare_documents(
-                                doc1_file.name,
-                                doc2_file.name
-                            )
+    # ---------- DOCUMENT COMPARISON TAB (Optional) ----------
+    if COMPARISON_AVAILABLE:
+        with tabs[tab_idx]:
+            tab_idx += 1
+            st.markdown("### 📊 Document Comparison")
+            st.info("💡 Upload multiple PDFs to compare them side-by-side and find similarities/differences!")
+            
+            st.markdown("#### 📎 Upload Documents to Compare")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                doc1_file = st.file_uploader("Document 1", type="pdf", key="doc1_upload")
+            
+            with col2:
+                doc2_file = st.file_uploader("Document 2", type="pdf", key="doc2_upload")
+            
+            if st.button("🔍 Compare Documents", key="compare_button"):
+                if not doc1_file or not doc2_file:
+                    st.warning("⚠️ Please upload both documents to compare.")
+                else:
+                    with st.spinner("📖 Extracting and analyzing documents..."):
+                        try:
+                            text1 = extract_text_from_pdf(doc1_file)
+                            text2 = extract_text_from_pdf(doc2_file)
                             
-                            st.session_state.comparison_result = comparison_result
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error during comparison: {e}")
-                        import traceback
-                        st.code(traceback.format_exc())
-        
-        # Display comparison results with enhanced visibility
-        if "comparison_result" in st.session_state and st.session_state.comparison_result:
-            st.markdown("---")
-            st.markdown("<div class='section-header'>📈 Comparison Results</div>", unsafe_allow_html=True)
+                            if not text1.strip() or not text2.strip():
+                                st.error("❌ Could not extract text from one or both PDFs.")
+                                st.stop()
+                            
+                            st.session_state.doc_comparison.add_document(doc1_file.name, text1)
+                            st.session_state.doc_comparison.add_document(doc2_file.name, text2)
+                            
+                            st.success("✅ Documents loaded successfully!")
+                            
+                            with st.spinner("🔬 Comparing documents..."):
+                                comparison_result = st.session_state.doc_comparison.compare_documents(
+                                    doc1_file.name,
+                                    doc2_file.name
+                                )
+                                st.session_state.comparison_result = comparison_result
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error during comparison: {e}")
             
-            result = st.session_state.comparison_result
-            
-            # Summary with better styling
-            st.markdown("""
-            <div class='comparison-section'>
-                <h4>📝 Summary</h4>
-                <div class='comparison-content'>
-                    {}
-                </div>
-            </div>
-            """.format(result['summary']), unsafe_allow_html=True)
-            
-            # Similarities
-            st.markdown("""
-            <div class='comparison-section'>
-                <h4>🤝 Similarities</h4>
-                <div class='comparison-content'>
-                    {}
-                </div>
-            </div>
-            """.format(result['similarities']), unsafe_allow_html=True)
-            
-            # Differences
-            st.markdown("""
-            <div class='comparison-section'>
-                <h4>⚡ Key Differences</h4>
-                <div class='comparison-content'>
-                    {}
-                </div>
-            </div>
-            """.format(result['differences']), unsafe_allow_html=True)
-            
-            # Recommendations
-            if result.get('recommendations'):
-                st.markdown("""
-                <div class='comparison-section'>
-                    <h4>💡 Recommendations</h4>
-                    <div class='comparison-content'>
-                        {}
-                    </div>
-                </div>
-                """.format(result['recommendations']), unsafe_allow_html=True)
-            
-            # Download comparison report
-            st.markdown("---")
-            report = f"""DOCUMENT COMPARISON REPORT
+            if "comparison_result" in st.session_state and st.session_state.comparison_result:
+                st.markdown("---")
+                st.markdown("### 📈 Comparison Results")
+                
+                result = st.session_state.comparison_result
+                
+                st.markdown("#### 📝 Summary")
+                st.markdown(f"<div class='comparison-box'>{result['summary']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("#### 🤝 Similarities")
+                with st.expander("View Common Topics", expanded=True):
+                    st.markdown(f"<div class='result-box'>{result['similarities']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("#### ⚡ Key Differences")
+                with st.expander("View Unique Aspects", expanded=True):
+                    st.markdown(f"<div class='result-box'>{result['differences']}</div>", unsafe_allow_html=True)
+                
+                if result.get('recommendations'):
+                    st.markdown("#### 💡 Recommendations")
+                    with st.expander("View Insights"):
+                        st.markdown(f"<div class='result-box'>{result['recommendations']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("---")
+                report = f"""DOCUMENT COMPARISON REPORT
 Generated by Athena AI Research Assistant
 
 Document 1: {doc1_file.name if doc1_file else 'N/A'}
@@ -538,14 +499,20 @@ DIFFERENCES
 RECOMMENDATIONS
 {result.get('recommendations', 'N/A')}
 """
-            
-            st.download_button(
-                label="📥 Download Comparison Report",
-                data=report,
-                file_name="document_comparison_report.txt",
-                mime="text/plain",
-                key="download_comparison"
-            )
+                
+                st.download_button(
+                    label="📥 Download Comparison Report",
+                    data=report,
+                    file_name="document_comparison_report.txt",
+                    mime="text/plain",
+                    key="download_comparison"
+                )
+
+    # ---------- VOICE ASSISTANT TAB (Optional) ----------
+    if VOICE_AVAILABLE:
+        with tabs[tab_idx]:
+            tab_idx += 1
+            render_voice_tab()
 
 # ---------- Footer ----------
 st.markdown("---")

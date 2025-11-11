@@ -1,7 +1,7 @@
-# voice_engine.py - Free Voice Engine for Athena (Python 3.12 compatible)
-# Uses: Whisper (local) + gTTS (Google TTS - requires internet for TTS only)
+# voice_engine.py - Windows-compatible Voice Engine
+# Uses: faster-whisper (no FFmpeg needed) + gTTS
 
-import whisper
+from faster_whisper import WhisperModel
 from gtts import gTTS
 import tempfile
 import os
@@ -10,9 +10,9 @@ from pathlib import Path
 
 class AthenaVoice:
     """
-    Free voice interface compatible with Python 3.12+
-    - Speech-to-Text: Whisper (local, offline)
-    - Text-to-Speech: gTTS (online, free, natural voice)
+    Windows-compatible voice interface
+    - Speech-to-Text: faster-whisper (no FFmpeg required!)
+    - Text-to-Speech: gTTS (requires internet)
     """
     
     def __init__(self, whisper_model="base", tts_lang='en'):
@@ -26,37 +26,58 @@ class AthenaVoice:
         print(f"   ✅ Voice engine ready!")
     
     def _initialize_whisper(self):
-        """Load Whisper model for speech recognition"""
+        """Load faster-whisper model (no FFmpeg needed!)"""
         try:
             print(f"   📥 Loading Whisper '{self.whisper_model_name}' model...")
-            self.whisper_model = whisper.load_model(self.whisper_model_name)
-            print(f"   ✅ Whisper ready (offline)")
+            
+            # faster-whisper uses different model names
+            # Recommended for Windows: tiny, base, small
+            self.whisper_model = WhisperModel(
+                self.whisper_model_name,
+                device="cpu",  # Use CPU (works on all systems)
+                compute_type="int8"  # Faster and smaller
+            )
+            
+            print(f"   ✅ Whisper ready (faster-whisper, no FFmpeg needed!)")
         except Exception as e:
             print(f"   ❌ Error loading Whisper: {e}")
+            print(f"   💡 Install: pip install faster-whisper")
             raise
     
     def transcribe_audio(self, audio_file_path: str, language='en') -> dict:
-        """Convert speech to text using Whisper (offline)"""
+        """Convert speech to text using faster-whisper"""
         try:
             print(f"🎤 Transcribing audio: {Path(audio_file_path).name}")
-            result = self.whisper_model.transcribe(
+            
+            # Check file exists
+            if not os.path.exists(audio_file_path):
+                raise FileNotFoundError(f"Audio file not found: {audio_file_path}")
+            
+            file_size = os.path.getsize(audio_file_path)
+            if file_size == 0:
+                raise ValueError("Audio file is empty (0 bytes)")
+            
+            print(f"   📊 File size: {file_size:,} bytes")
+            
+            # Transcribe with faster-whisper
+            segments, info = self.whisper_model.transcribe(
                 audio_file_path,
-                fp16=False,
                 language=language if language != 'auto' else None,
                 task='transcribe',
-                verbose=False
+                beam_size=5,
+                vad_filter=True  # Voice activity detection
             )
             
-            text = result["text"].strip()
-            detected_language = result.get("language", language)
+            # Collect all text segments
+            text_segments = []
+            for segment in segments:
+                text_segments.append(segment.text)
             
-            # Confidence calculation
-            segments = result.get("segments", [])
-            if segments:
-                avg_confidence = sum(s.get("no_speech_prob", 0) for s in segments) / len(segments)
-                confidence = 1 - avg_confidence
-            else:
-                confidence = 1.0
+            text = " ".join(text_segments).strip()
+            detected_language = info.language
+            
+            # Estimate confidence from info
+            confidence = info.language_probability
             
             print(f"   ✅ Transcribed: '{text[:50]}{'...' if len(text) > 50 else ''}'")
             print(f"   📊 Language: {detected_language}, Confidence: {confidence:.0%}")
@@ -70,6 +91,9 @@ class AthenaVoice:
             
         except Exception as e:
             print(f"   ❌ Transcription error: {e}")
+            import traceback
+            traceback.print_exc()
+            
             return {
                 'text': '',
                 'language': 'unknown',
@@ -109,7 +133,7 @@ class AthenaVoice:
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("🧪 ATHENA VOICE ENGINE TEST (gTTS + Whisper)")
+    print("🧪 ATHENA VOICE ENGINE TEST (faster-whisper + gTTS)")
     print("=" * 70)
     
     print(f"\n📌 Python version: {os.sys.version}")
@@ -117,41 +141,39 @@ if __name__ == "__main__":
     # Initialize
     print("\n1️⃣ Initializing voice engine...")
     try:
-        voice = AthenaVoice(whisper_model="tiny")  # use tiny for quick tests
+        voice = AthenaVoice(whisper_model="tiny")  # tiny is fastest
         print("   ✅ Initialization successful!\n")
     except Exception as e:
         print(f"   ❌ Failed: {e}")
-        print("   💡 Install dependencies: pip install openai-whisper gtts")
+        print("   💡 Install dependencies:")
+        print("      pip install faster-whisper gtts")
         os.sys.exit(1)
     
-    # 2️⃣ TTS Test
+    # TTS Test
     print("2️⃣ Testing Text-to-Speech (requires internet)...")
     try:
-        texts = [
-            "Hello Sagar! This is Athena speaking.",
-            "Testing the voice engine with Google Text-to-Speech."
-        ]
-        for i, t in enumerate(texts, 1):
-            out = f"test_athena_{i}.mp3"
-            res = voice.speak(t, out)
-            if res:
-                print(f"   ✅ Saved as: {out}")
-            else:
-                print(f"   ❌ Failed TTS for test {i}")
+        test_text = "Hello! This is Athena speaking. Windows voice test successful."
+        output = "test_windows_voice.mp3"
+        
+        result = voice.speak(test_text, output)
+        
+        if result and os.path.exists(result):
+            print(f"   ✅ TTS working: {output}")
+            print(f"   📊 File size: {os.path.getsize(result):,} bytes")
+        else:
+            print(f"   ❌ TTS failed")
     except Exception as e:
         print(f"   ❌ TTS test failed: {e}")
     
-    # 3️⃣ Transcription Test
-    print("\n3️⃣ Testing Speech-to-Text (offline)...")
+    # Transcription Test
+    print("\n3️⃣ Testing Speech-to-Text...")
     import sys
     if len(sys.argv) > 1:
         audio_file = sys.argv[1]
-        if not os.path.isabs(audio_file):
-            audio_file = os.path.join(os.path.dirname(__file__), audio_file)
         
         print(f"   Testing with: {audio_file}")
         if not os.path.exists(audio_file):
-            print(f"   ❌ File not found at: {audio_file}")
+            print(f"   ❌ File not found: {audio_file}")
         else:
             result = voice.transcribe_audio(audio_file)
             if result['success']:
@@ -162,30 +184,26 @@ if __name__ == "__main__":
             else:
                 print(f"   ❌ Failed: {result.get('error')}")
     else:
-        print("   ℹ️  Skipped (provide audio file as argument)")
+        print("   ℹ️  Skipped (provide audio file to test)")
         print("   Usage: python voice_engine.py test.wav")
     
     print("\n" + "=" * 70)
     print("✅ TESTS COMPLETE!")
     print("=" * 70)
     
-    print("\n📊 Voice Engine Features:")
-    print("   🎤 Transcription: Offline (Whisper)")
+    print("\n🎯 Voice Engine Info:")
+    print("   🎤 Transcription: Offline (faster-whisper)")
     print("   🔊 Speech: Online (gTTS)")
-    print("   🆓 Cost: 100% Free")
-    print("   ⭐ Quality: ⭐⭐⭐⭐ (Natural Google voice)")
+    print("   💰 Cost: 100% Free")
+    print("   🪟 Windows: Full Support (no FFmpeg needed!)")
     
-    print("\n💡 Pros:")
-    print("   ✅ Works with Python 3.12+")
-    print("   ✅ Natural-sounding voice")
-    print("   ✅ Easy to use")
-    print("   ✅ 100% free")
+    print("\n✅ Advantages:")
+    print("   ✅ No FFmpeg installation required")
+    print("   ✅ Faster transcription")
+    print("   ✅ Better Windows compatibility")
+    print("   ✅ Lower memory usage")
     
-    print("\n⚠️  Note:")
-    print("   - TTS requires internet connection")
-    print("   - Transcription works offline")
-    
-    print("\n🎯 Next steps:")
-    print("   1. Test: python voice_engine.py test.wav")
-    print("   2. Integrate into Streamlit")
-    print("   3. Add voice tab to app.py")
+    print("\n💡 Next Steps:")
+    print("   1. Test with audio: python voice_engine.py test.wav")
+    print("   2. Run diagnostic: python test_voice.py")
+    print("   3. Start Athena: streamlit run app.py")

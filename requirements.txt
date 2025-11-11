@@ -1,22 +1,7 @@
-# Athena Voice Interface - Free & Offline Dependencies
-
-# ===== CORE VOICE COMPONENTS =====
-
-# Speech-to-Text (Whisper)
-openai-whisper>=20231117
-# Alternative (2-4x faster): faster-whisper>=0.10.0
-
-# Text-to-Speech (Coqui TTS)
-TTS>=0.22.0
-
-# Audio processing
-soundfile>=0.12.1
-sounddevice>=0.4.6  # For recording (optional)
-
-# ===== EXISTING DEPENDENCIES (keep these) =====
+# Athena - AI Research Assistant Requirements
 
 # Core Framework
-streamlit>=1.28.0
+streamlit>=1.30.0  # Updated for audio_input support
 
 # PDF Processing
 PyPDF2>=3.0.0
@@ -29,34 +14,30 @@ langchain-community>=0.0.10
 # Vector Store & Embeddings
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.0
+scikit-learn>=1.3.0  # For cosine similarity in document comparison
 
 # LLM Integration
-ollama>=0.1.0
+ollama>=0.1.0  # Optional: for Python Ollama client
 
 # Text Processing
 tiktoken>=0.5.0
 
 # Web Search Tools
-ddgs>=6.0.0
+ddgs>=6.0.0  # formerly duckduckgo-search
 arxiv>=2.0.0
 
 # API Requests
 requests>=2.31.0
 
 # Additional Utilities
-python-dotenv>=1.0.0
+python-dotenv>=1.0.0  # For environment variables
 
-# ===== OPTIONAL ENHANCEMENTS =====
+# Voice Interface Dependencies
+openai-whisper>=20231117  # Speech-to-text (offline)
+gtts>=2.5.0  # Google Text-to-Speech (online, free)
+soundfile>=0.12.0  # Audio file handling
+numpy>=1.24.0  # Required by Whisper
 
-# For better audio recording in Streamlit
-# streamlit-audiorec>=0.1.0
-
-# For advanced audio processing
-# librosa>=0.10.0
-# pydub>=0.25.1
-
-# ===== SYSTEM DEPENDENCIES =====
-# These may need to be installed via apt/brew:
-# - libsndfile1 (Ubuntu/Debian: sudo apt-get install libsndfile1)
-# - libsndfile (macOS: brew install libsndfile)
-# - ffmpeg (optional, for more audio format support)
+# Optional: For better PDF extraction
+# pdfplumber>=0.10.0
+# PyMuPDF>=1.23.0  # fitz
