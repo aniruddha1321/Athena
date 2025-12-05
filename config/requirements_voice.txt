@@ -1,0 +1,14 @@
+# Voice Interface Dependencies
+# Install with: pip install -r config/requirements_voice.txt
+
+# Speech-to-Text (Windows-friendly, no FFmpeg needed)
+faster-whisper>=0.10.0
+
+# Text-to-Speech
+gtts>=2.5.0
+
+# Audio file handling
+soundfile>=0.12.1
+
+# Audio recording
+pyaudio>=0.2.13
