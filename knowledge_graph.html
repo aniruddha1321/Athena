@@ -33,8 +33,8 @@
 
              #mynetwork {
                  width: 100%;
-                 height: 600px;
-                 background-color: #222222;
+                 height: 400px;
+                 background-color: #f8fafc;
                  border: 1px solid lightgray;
                  position: relative;
                  float: left;
@@ -88,8 +88,8 @@
                   
 
                   // parsing and collecting nodes and edges from the python
-                  nodes = new vis.DataSet([{"color": "#FF6B6B", "font": {"color": "white"}, "id": "2. A Review on GPU Architectures \u0026 Programming.pdf", "label": "2. A Review on GPU Architectures \u0026 Programming.pdf", "shape": "dot", "size": 19, "title": "2. A Review on GPU Architectures \u0026 Programming.pdf\nType: paper\nConnections: 3"}, {"color": "#95E1D3", "font": {"color": "white"}, "id": "GPU", "label": "GPU", "shape": "dot", "size": 19, "title": "GPU\nType: hardware\nConnections: 3"}, {"color": "#95E1D3", "font": {"color": "white"}, "id": "CPU", "label": "CPU", "shape": "dot", "size": 16, "title": "CPU\nType: hardware\nConnections: 2"}, {"color": "#95E1D3", "font": {"color": "white"}, "id": "gpu", "label": "gpu", "shape": "dot", "size": 16, "title": "gpu\nType: hardware\nConnections: 2"}]);
-                  edges = new vis.DataSet([{"arrows": "to", "from": "2. A Review on GPU Architectures \u0026 Programming.pdf", "label": "contains", "title": "contains\n", "to": "GPU"}, {"arrows": "to", "from": "2. A Review on GPU Architectures \u0026 Programming.pdf", "label": "contains", "title": "contains\n", "to": "CPU"}, {"arrows": "to", "from": "2. A Review on GPU Architectures \u0026 Programming.pdf", "label": "contains", "title": "contains\n", "to": "gpu"}, {"arrows": "to", "from": "GPU", "label": "proposes", "title": "proposes\n\"The Past, Presentandfutureof \nGPU-Accelerated Grid Computing\"", "to": "gpu"}, {"arrows": "to", "from": "GPU", "label": "compares", "title": "compares\nComparedto CPUthepowerpotentialof GPUhas \nbecomemorebeneficialfortheblockchainmining \nbecauseofitshi", "to": "CPU"}]);
+                  nodes = new vis.DataSet([{"color": "#FF6B6B", "font": {"color": "#1e293b"}, "id": "A Survey on CUDA.pdf", "label": "A Survey on CUDA.pdf", "shape": "dot", "size": 19, "title": "A Survey on CUDA.pdf\nType: paper\nConnections: 3"}, {"color": "#95E1D3", "font": {"color": "#1e293b"}, "id": "GPU", "label": "GPU", "shape": "dot", "size": 16, "title": "GPU\nType: hardware\nConnections: 2"}, {"color": "#95E1D3", "font": {"color": "#1e293b"}, "id": "CPU", "label": "CPU", "shape": "dot", "size": 16, "title": "CPU\nType: hardware\nConnections: 2"}, {"color": "#C7CEEA", "font": {"color": "#1e293b"}, "id": "Java", "label": "Java", "shape": "dot", "size": 13, "title": "Java\nType: software\nConnections: 1"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "A Survey on CUDA.pdf", "label": "contains", "title": "contains\n", "to": "GPU"}, {"arrows": "to", "from": "A Survey on CUDA.pdf", "label": "contains", "title": "contains\n", "to": "CPU"}, {"arrows": "to", "from": "A Survey on CUDA.pdf", "label": "contains", "title": "contains\n", "to": "Java"}, {"arrows": "to", "from": "GPU", "label": "proposes", "title": "proposes\nC\nRITICALANALYSIS : \nInthissection, Ihavepresentedthecomparisonbetweenexecutiontimeof CPUand GPUonex", "to": "CPU"}]);
 
                   nodeColors = {};
                   allNodes = nodes.get({ returnType: "Object" });

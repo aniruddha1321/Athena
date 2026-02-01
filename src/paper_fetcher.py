@@ -428,9 +428,10 @@ COMPREHENSIVE RESEARCH SUMMARY:"""
             "stream": False,
             "options": {
                 "temperature": 0.4,
-                "num_predict": 1500,
-                "num_ctx": 4096
-            }
+                "num_predict": 400,
+                "num_ctx": 2048
+            },
+            "keep_alive": "10m"
         }
         
         print("   🤖 Calling Ollama API...")
@@ -509,9 +510,10 @@ Be specific, technical yet accessible. Aim for 600-800 words."""
             "stream": False,
             "options": {
                 "temperature": 0.4,
-                "num_predict": 1200,
+                "num_predict": 300,
                 "num_ctx": 2048
-            }
+            },
+            "keep_alive": "10m"
         }
         
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)

@@ -13,10 +13,10 @@ def create_pyvis_graph(kg_builder: KnowledgeGraphBuilder):
         from pyvis.network import Network
         
         net = Network(
-            height="600px",
+            height="400px",
             width="100%",
-            bgcolor="#222222",
-            font_color="white",
+            bgcolor="#f8fafc",
+            font_color="#1e293b",
             directed=True
         )
         
@@ -161,7 +161,7 @@ def create_plotly_graph(kg_builder: KnowledgeGraphBuilder):
                 plot_bgcolor='#0e1117',
                 paper_bgcolor='#0e1117',
                 font=dict(color='white'),
-                height=600
+                height=400
             )
         )
         
@@ -211,15 +211,15 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
     st.info("💡 Visualize entities, methods, datasets, and their relationships extracted from your document")
     
     # Build graph button
-    if 'kg_builder' not in st.session_state or st.button("🔨 Build Knowledge Graph", type="primary"):
-        with st.spinner("🔬 Extracting knowledge and building graph..."):
+    if 'kg_builder' not in st.session_state or st.button("Build Knowledge Graph", type="primary"):
+        with st.spinner("Extracting knowledge and building graph..."):
             kg_builder = KnowledgeGraphBuilder()
             graph = kg_builder.build_graph(pdf_text, title)
             st.session_state.kg_builder = kg_builder
-            st.success("✅ Knowledge graph built successfully!")
+            st.success("Knowledge graph built successfully!")
     
     if 'kg_builder' not in st.session_state:
-        st.warning("⚠️ Click 'Build Knowledge Graph' to start")
+        st.warning("Click 'Build Knowledge Graph' to start")
         return
     
     kg_builder = st.session_state.kg_builder
@@ -227,42 +227,76 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
     # Statistics in sidebar
     render_graph_statistics(kg_builder)
     
-    # Main content area
-    tab1, tab2, tab3 = st.tabs(["🎨 Visualization", "🔍 Query", "📊 Analysis"])
+    # Initialize session state
+    if 'viz_method' not in st.session_state:
+        st.session_state.viz_method = "PyVis"
+    if 'active_kg_tab' not in st.session_state:
+        st.session_state.active_kg_tab = "Visualization"
     
-    # TAB 1: Visualization
-    with tab1:
-        st.markdown("#### Interactive Graph Visualization")
-        
-        viz_method = st.radio(
-            "Visualization Method",
-            ["PyVis (Interactive)", "Plotly (Fallback)"],
-            horizontal=True
-        )
-        
-        if viz_method == "PyVis (Interactive)":
+    # CSS to reduce spacing and style labels
+    st.markdown("""
+    <style>
+    /* Reduce spacing after button row */
+    .stHorizontalBlock { margin-bottom: -10px; }
+    /* Reduce hr margins */
+    hr { margin: 0.5rem 0 !important; }
+    /* Reduce heading margins */
+    h4 { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+    /* Increase widget label font size */
+    .stTextInput label, .stSelectbox label { font-size:25px !important; font-weight: 600 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # All buttons on same row: Visualization, Query, Analysis | PyVis, Plotly
+    col1, col2, col3, spacer, col4, col5 = st.columns([1, 1, 1, 3, 1, 1])
+    
+    with col1:
+        if st.button("Visualization", use_container_width=True,
+                    type="primary" if st.session_state.active_kg_tab == "Visualization" else "secondary"):
+            st.session_state.active_kg_tab = "Visualization"
+            st.rerun()
+    with col2:
+        if st.button("Query", use_container_width=True,
+                    type="primary" if st.session_state.active_kg_tab == "Query" else "secondary"):
+            st.session_state.active_kg_tab = "Query"
+            st.rerun()
+    with col3:
+        if st.button("Analysis", use_container_width=True,
+                    type="primary" if st.session_state.active_kg_tab == "Analysis" else "secondary"):
+            st.session_state.active_kg_tab = "Analysis"
+            st.rerun()
+    with col4:
+        if st.button("PyVis", use_container_width=True,
+                    type="primary" if st.session_state.viz_method == "PyVis" else "secondary"):
+            st.session_state.viz_method = "PyVis"
+            st.rerun()
+    with col5:
+        if st.button("Plotly", use_container_width=True,
+                    type="primary" if st.session_state.viz_method == "Plotly" else "secondary"):
+            st.session_state.viz_method = "Plotly"
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # CONTENT: Visualization
+    if st.session_state.active_kg_tab == "Visualization":
+        # Show graph based on selection
+        if st.session_state.viz_method == "PyVis":
             net = create_pyvis_graph(kg_builder)
             
             if net:
-                # Save and display
                 html_file = "knowledge_graph.html"
                 net.save_graph(html_file)
                 
                 with open(html_file, 'r', encoding='utf-8') as f:
                     html_content = f.read()
                 
-                components.html(html_content, height=650, scrolling=True)
-                
-                st.markdown("**💡 Interaction Tips:**")
-                st.markdown("- 🖱️ Drag nodes to rearrange")
-                st.markdown("- 🔍 Hover for details")
-                st.markdown("- 🎯 Click to select")
+                components.html(html_content, height=420, scrolling=False)
             else:
-                st.info("Using Plotly fallback visualization...")
+                st.info("PyVis not available, using Plotly...")
                 fig = create_plotly_graph(kg_builder)
                 if fig:
                     st.plotly_chart(fig, use_container_width=True)
-        
         else:
             fig = create_plotly_graph(kg_builder)
             if fig:
@@ -282,9 +316,9 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
             for emoji_color, description in legend_data.items():
                 st.write(f"{emoji_color}: {description}")
     
-    # TAB 2: Query
-    with tab2:
-        st.markdown("#### 🔍 Query Knowledge Graph")
+    # CONTENT: Query
+    elif st.session_state.active_kg_tab == "Query":
+        st.markdown("#### Query Knowledge Graph")
         
         query = st.text_input(
             "Search for entities or concepts",
@@ -316,7 +350,7 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
         
         # Path finding
         st.markdown("---")
-        st.markdown("#### 🛤️ Find Path Between Entities")
+        st.markdown("#### Find Path Between Entities")
         
         col1, col2 = st.columns(2)
         
@@ -345,12 +379,9 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
             else:
                 st.info("No paths found between these entities")
     
-    # TAB 3: Analysis
-    with tab3:
-        st.markdown("#### 📊 Graph Analysis")
-        
-        # Export options
-        st.markdown("##### 📤 Export")
+    # CONTENT: Analysis
+    elif st.session_state.active_kg_tab == "Analysis":
+        st.markdown("#### Graph Analysis (Export)")
         
         col1, col2 = st.columns(2)
         
@@ -390,29 +421,48 @@ def render_knowledge_graph_tab(pdf_text: str, title: str = "Research Paper"):
         
         # Subgraph extraction
         st.markdown("---")
-        st.markdown("##### 🔬 Extract Subgraph")
         
-        center_node = st.selectbox(
-            "Center node",
-            options=list(kg_builder.graph.nodes()),
-            key="center_subgraph"
-        )
+        col_controls, col_help = st.columns([1, 1])
         
-        depth = st.slider("Depth (hops)", min_value=1, max_value=3, value=1)
+        with col_controls:
+            st.markdown("##### 🔬 Extract Subgraph")
+            center_node = st.selectbox(
+                "Center node",
+                options=list(kg_builder.graph.nodes()),
+                key="center_subgraph"
+            )
+            
+            depth = st.slider("Depth (hops)", min_value=1, max_value=3, value=1)
+            
+            if st.button("Extract Subgraph"):
+                subgraph = kg_builder.get_subgraph(center_node, depth=depth)
+                
+                st.success(f"✅ Subgraph: {subgraph.number_of_nodes()} nodes, {subgraph.number_of_edges()} edges")
+                
+                # Show subgraph details
+                st.markdown("**Nodes in subgraph:**")
+                for node in list(subgraph.nodes())[:10]:
+                    node_type = subgraph.nodes[node].get('type', 'unknown')
+                    st.write(f"- {node} ({node_type})")
+                
+                if subgraph.number_of_nodes() > 10:
+                    st.write(f"... and {subgraph.number_of_nodes() - 10} more")
         
-        if st.button("Extract Subgraph"):
-            subgraph = kg_builder.get_subgraph(center_node, depth=depth)
+        with col_help:
+            st.markdown("""
+            ##### How to use:
+
+            1. **Select a center node** - Choose the entity you want to explore from the dropdown
             
-            st.success(f"✅ Subgraph: {subgraph.number_of_nodes()} nodes, {subgraph.number_of_edges()} edges")
+            2. **Set depth (hops)** - Controls how far to expand:
+               - `1 hop`: Direct connections only
+               - `2 hops`: Connections of connections
+               - `3 hops`: Extended network
             
-            # Show subgraph details
-            st.markdown("**Nodes in subgraph:**")
-            for node in list(subgraph.nodes())[:10]:
-                node_type = subgraph.nodes[node].get('type', 'unknown')
-                st.write(f"- {node} ({node_type})")
+            3. **Click Extract** - View the subgraph containing all nodes within the specified distance
             
-            if subgraph.number_of_nodes() > 10:
-                st.write(f"... and {subgraph.number_of_nodes() - 10} more")
+            💡 *Useful for focusing on specific parts of large knowledge graphs*
+            """)
 
 
 # =====================================================================

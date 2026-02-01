@@ -687,21 +687,27 @@ def main():
                             st.session_state.pdf_uploaded = True
                             st.session_state.pdf_filename = uploaded_file.name
                             
-                            splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-                            chunks = splitter.split_text(text)
-                            
-                            summaries = []
-                            progress_bar = st.progress(0)
-                            
-                            for i, chunk in enumerate(chunks):
-                                partial_query = f"Summarize this section:\n\n{chunk}"
-                                chunk_summary = research_topic(partial_query, skip_tools=True)
-                                summaries.append(chunk_summary)
-                                progress_bar.progress((i + 1) / len(chunks))
-                            
-                            combined_text = "\n\n".join(summaries)
-                            final_query = f"Create a cohesive summary:\n\n{combined_text}"
-                            result = research_topic(final_query, skip_tools=True)
+                            # For small docs (<8000 chars), use single LLM call
+                            # For large docs, use chunked processing
+                            if len(text) < 8000:
+                                # Single call for small documents - FAST
+                                result = research_topic(f"Summarize this document:\n\n{text[:6000]}", skip_tools=True)
+                            else:
+                                # Chunked processing only for large documents
+                                splitter = RecursiveCharacterTextSplitter(chunk_size=6000, chunk_overlap=200)
+                                chunks = splitter.split_text(text)
+                                
+                                summaries = []
+                                progress_bar = st.progress(0)
+                                
+                                for i, chunk in enumerate(chunks):
+                                    partial_query = f"Summarize briefly:\n\n{chunk}"
+                                    chunk_summary = research_topic(partial_query, skip_tools=True)
+                                    summaries.append(chunk_summary)
+                                    progress_bar.progress((i + 1) / len(chunks))
+                                
+                                combined_text = "\n\n".join(summaries)
+                                result = research_topic(f"Create a cohesive summary:\n\n{combined_text}", skip_tools=True)
                         
                         except Exception as e:
                             st.markdown('<p style="color: red;">Error processing PDF: {}</p>'.format(e), unsafe_allow_html=True)
@@ -938,15 +944,28 @@ def main():
         user_input = st.chat_input("Type your message here...")
         
         if user_input and user_input.strip():
-            with st.spinner("Athena is thinking..."):
-                response = st.session_state.athena_chat.chat(user_input)
+            # Display user message immediately
+            with st.chat_message("user"):
+                st.markdown(user_input)
+            
+            # Stream the assistant response in real-time
+            with st.chat_message("assistant", avatar="🧠"):
+                response_placeholder = st.empty()
+                full_response = []
+                
+                # Stream tokens as they arrive
+                for token in st.session_state.athena_chat.chat_stream(user_input):
+                    full_response.append(token)
+                    response_placeholder.markdown("".join(full_response) + "▌")
+                
+                # Final response without cursor
+                final_response = "".join(full_response)
+                response_placeholder.markdown(final_response)
                 
                 st.session_state.chat_messages.append({
                     "user": user_input,
-                    "assistant": response
+                    "assistant": final_response
                 })
-                
-                st.rerun()
     
     # ---------- KNOWLEDGE GRAPH PAGE (Optional) ----------
     elif selected == "KG":

@@ -224,8 +224,10 @@ ANSWER (with source citations):"""
                 "stream": False,
                 "options": {
                     "temperature": 0.3,
-                    "num_predict": 600
-                }
+                    "num_predict": 300,
+                    "num_ctx": 2048
+                },
+                "keep_alive": "10m"
             }
             
             response = requests.post(self.ollama_url, json=payload, timeout=120)
@@ -301,8 +303,10 @@ Be specific and reference each paper by name."""
                 "stream": False,
                 "options": {
                     "temperature": 0.4,
-                    "num_predict": 800
-                }
+                    "num_predict": 400,
+                    "num_ctx": 2048
+                },
+                "keep_alive": "10m"
             }
             
             response = requests.post(self.ollama_url, json=payload, timeout=120)
@@ -364,8 +368,10 @@ Provide:
                 "stream": False,
                 "options": {
                     "temperature": 0.4,
-                    "num_predict": 700
-                }
+                    "num_predict": 350,
+                    "num_ctx": 2048
+                },
+                "keep_alive": "10m"
             }
             
             response = requests.post(self.ollama_url, json=payload, timeout=120)

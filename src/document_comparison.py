@@ -420,7 +420,8 @@ Be specific with technologies, projects, and qualifications mentioned."""
                 "model": self.model,
                 "prompt": prompt,
                 "stream": False,
-                "options": {"temperature": 0.3, "num_predict": 800, "num_ctx": 4096}
+                "options": {"temperature": 0.3, "num_predict": 400, "num_ctx": 2048},
+                "keep_alive": "10m"
             }
             
             print("   Waiting for AI analysis...")

@@ -134,12 +134,6 @@ bash scripts/setup_voice.sh
 - Ollama installed and running
 - 5GB free disk space
 
-## Documentation
-
-- Full documentation: `docs/README.md`
-- Installation guide: `docs/installation.md`
-- Research paper: `docs/RESEARCH_DOCUMENTATION.md`
-
 ## License
 
 MIT License - see LICENSE file
@@ -150,11 +144,4 @@ MIT License - see LICENSE file
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
-
-## Support
-
-- Report bugs: `docs/bug_report.md`
-- Request features: `docs/feature_request.md`
-- GitHub Issues: https://github.com/aniruddha1321/Athena/issues
-
 ---

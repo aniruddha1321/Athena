@@ -1,6 +1,9 @@
 # qa_engine.py — Fixed for LangChain 0.3+ compatibility
+# Optimized with streaming and keep-alive for faster responses
+
 import streamlit as st
 import requests
+from typing import Generator
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -11,7 +14,7 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 def make_qa_chain(pdf_text: str, chunk_size: int = 2000, k: int = 3, model: str = "llama3.2:1b"):
     """
     Offline Q&A system using local Ollama API for LLM inference.
-    Returns a callable function that answers questions.
+    Returns a callable function that answers questions with streaming support.
     
     Compatible with LangChain 0.3+ (uses invoke() instead of get_relevant_documents())
     """
@@ -41,20 +44,18 @@ def make_qa_chain(pdf_text: str, chunk_size: int = 2000, k: int = 3, model: str 
         print(f"❌ Error creating QA index: {e}")
         raise
 
-    def answer(question: str) -> str:
-        """Answer questions based on the PDF content"""
+    def answer_stream(question: str) -> Generator[str, None, None]:
+        """Answer questions with streaming response"""
         try:
-            # Retrieve most relevant context using invoke() for LangChain 0.3+
-            # Try both methods for compatibility
+            # Retrieve most relevant context
             try:
-                # Method 1: invoke() (LangChain 0.3+)
                 docs = retriever.invoke(question)
             except AttributeError:
-                # Method 2: get_relevant_documents() (older versions)
                 docs = retriever.get_relevant_documents(question)
             
             if not docs:
-                return "⚠️ No relevant context found in the document."
+                yield "⚠️ No relevant context found in the document."
+                return
             
             context = "\n\n---\n\n".join([doc.page_content for doc in docs])
             
@@ -70,35 +71,54 @@ Question: {question}
 
 Answer:"""
             
-            # Send request to Ollama API
+            # Send request to Ollama API with streaming
             payload = {
                 "model": model,
                 "prompt": prompt,
-                "stream": False,
+                "stream": True,
                 "options": {
                     "temperature": 0.3,
-                    "num_predict": 500
-                }
+                    "num_predict": 250,  # Reduced for speed
+                    "num_ctx": 2048  # Balanced context
+                },
+                "keep_alive": "10m"
             }
             
-            response = requests.post(OLLAMA_URL, json=payload, timeout=120)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=60, stream=True)
             
             if response.status_code != 200:
-                return f"❌ Ollama API error {response.status_code}: {response.text}"
+                yield f"❌ Ollama API error {response.status_code}: {response.text}"
+                return
             
-            data = response.json()
-            answer_text = data.get("response", "").strip()
-            
-            if not answer_text:
-                return "⚠️ No answer received from the model."
-            
-            return answer_text
+            # Stream response chunks
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        import json
+                        data = json.loads(line)
+                        token = data.get("response", "")
+                        if token:
+                            yield token
+                        
+                        if data.get("done", False):
+                            break
+                    except:
+                        continue
             
         except requests.exceptions.Timeout:
-            return "❌ Request timed out. The model might be processing a large context."
+            yield "❌ Request timed out. The model might be processing a large context."
         except requests.exceptions.ConnectionError:
-            return "❌ Could not connect to Ollama. Make sure it's running on http://localhost:11434"
+            yield "❌ Could not connect to Ollama. Make sure it's running on http://localhost:11434"
         except Exception as e:
-            return f"❌ Error during Q&A: {str(e)}"
+            yield f"❌ Error during Q&A: {str(e)}"
+
+    def answer(question: str) -> str:
+        """Answer questions (non-streaming for backwards compatibility)"""
+        response_parts = []
+        for chunk in answer_stream(question):
+            response_parts.append(chunk)
+        return "".join(response_parts).strip()
     
+    # Return function with both methods accessible
+    answer.stream = answer_stream
     return answer
